@@ -53,7 +53,6 @@ csc Step3.cs && ./Step3
 
 This is a learning project, so some steps contain deliberate or in-progress bugs (documented in each `StepN.md`):
 
-- **Step 3 does not compile as-is** — `RDParser.Factor()` is missing a `return RetValue;` (`CS0161`).
 - Subtraction and division are **right-associative** in Steps 2–3 due to right-recursion in the parser (e.g. `10-3-2` → `9`).
 
 See the per-step `.md` files for full explanations and the complete issue list.

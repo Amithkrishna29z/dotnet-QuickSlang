@@ -322,7 +322,7 @@ output
 
 ## Known issues in this file
 
-- **Compile error — `Factor()` never returns.** `RDParser.Factor()` builds `RetValue` but has no `return RetValue;` at the end, producing **`CS0161: not all code paths return a value`**. The file will not build until a `return RetValue;` is added before the closing brace.
+- ~~**Compile error — `Factor()` never returns.**~~ **Fixed** — `RDParser.Factor()` now ends with `return RetValue;`, resolving the earlier `CS0161: not all code paths return a value`.
 - **Right-associativity bug** carried from Step 2: `Expr()` recurses with `Expr()` and `Term()` with `Term()` for the right operand, making `-` and `/` right-associative (e.g. `10-3-2` → `9`). The sample scripts only use `*`, so it isn't visible.
 - **`last_str` is write-only** — the identifier text for `TOK_UNQUOTED_STRING` is stored but has no getter, so it can't be retrieved yet.
 - **Unused `using` directives** (`System.Linq.Expressions`, `System.Reflection`, `System.Security.Principal`) and a **duplicate number accessor** (`Number` property and `GetNumber()` both return `_curr_num`).
