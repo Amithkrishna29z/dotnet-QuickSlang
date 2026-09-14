@@ -3,8 +3,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Principal;
 
-public class RUNTIME_CONTEXT { }
-
 public enum TYPE_INFO
 {
     TYPE_ILLEGAL = -1,
@@ -13,15 +11,6 @@ public enum TYPE_INFO
     TYPE_STRING,
     TYPE_ARRAY,
     TYPE_MAP
-}
-
-public class SYMBOL_INFO
-{
-    public String SymbolName;
-    public TYPE_INFO Type;
-    public String str_val;
-    public double dbl_val;
-    public bool bol_val;
 }
 
 public enum OPERATOR
@@ -56,6 +45,17 @@ public struct ValueTable
         this.Value = Value;
     }
 }
+
+public class SYMBOL_INFO
+{
+    public String SymbolName;
+    public TYPE_INFO Type;
+    public String str_val;
+    public double dbl_val;
+    public bool bol_val;
+}
+
+public class RUNTIME_CONTEXT { }
 
 public class Lexer
 {
@@ -291,6 +291,51 @@ public class UnaryExp : Exp
     }
 }
 
+public abstract class Stmt
+{
+    public abstract bool Execute(RUNTIME_CONTEXT con);
+    public abstract SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont);
+}
+
+public class PrintStatement : Stmt
+{
+    private Exp _ex;
+    public PrintStatement(Exp ex) { _ex = ex; }
+    public override bool Execute(RUNTIME_CONTEXT con)
+    {
+        double a = _ex.Evaluate(con);
+        Console.Write(a.ToString());
+        return true;
+    }
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write("printf(");
+        _ex.GenerateJS(cont);
+        Console.Write(");\r\n");
+        return null;
+    }
+}
+
+public class PrintLineStatement : Stmt
+{
+    private Exp _ex;
+    public PrintLineStatement(Exp ex) { _ex = ex; }
+    public override bool Execute(RUNTIME_CONTEXT con)
+    {
+        double a = _ex.Evaluate(con);
+        Console.WriteLine(a.ToString());
+        return true;
+    }
+
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write("printf(");
+        _ex.GenerateJS(cont);
+        Console.Write(");" + "\r\n");
+        return null;
+    }
+}
+
 public class RDParser : Lexer
 {
     TOKEN Current_Token;
@@ -453,51 +498,6 @@ public class ExpressionBuilder : AbstractBuilder
         }
         catch (Exception)
         { return null; }
-    }
-}
-
-public abstract class Stmt
-{
-    public abstract bool Execute(RUNTIME_CONTEXT con);
-    public abstract SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont);
-}
-
-public class PrintStatement : Stmt
-{
-    private Exp _ex;
-    public PrintStatement(Exp ex) { _ex = ex; }
-    public override bool Execute(RUNTIME_CONTEXT con)
-    {
-        double a = _ex.Evaluate(con);
-        Console.Write(a.ToString());
-        return true;
-    }
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write("printf(");
-        _ex.GenerateJS(cont);
-        Console.Write(");\r\n");
-        return null;
-    }
-}
-
-public class PrintLineStatement : Stmt
-{
-    private Exp _ex;
-    public PrintLineStatement(Exp ex) { _ex = ex; }
-    public override bool Execute(RUNTIME_CONTEXT con)
-    {
-        double a = _ex.Evaluate(con);
-        Console.WriteLine(a.ToString());
-        return true;
-    }
-
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write("printf(");
-        _ex.GenerateJS(cont);
-        Console.Write(");" + "\r\n");
-        return null;
     }
 }
 

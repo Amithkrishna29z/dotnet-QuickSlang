@@ -3,29 +3,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Security.Principal;
 
-public class RUNTIME_CONTEXT
-{
-    private Dictionary<string, SYMBOL_INFO> _symbols = new Dictionary<string, SYMBOL_INFO>();
-
-    public void Declare(string name, TYPE_INFO type)
-    {
-        if (_symbols.ContainsKey(name))
-        {
-            throw new Exception("Variable already declared: " + name);
-        }
-        _symbols[name] = new SYMBOL_INFO { SymbolName = name, Type = type };
-    }
-
-    public SYMBOL_INFO Lookup(string name)
-    {
-        if (!_symbols.TryGetValue(name, out SYMBOL_INFO info))
-        {
-            throw new Exception("Undeclared variable: " + name);
-        }
-        return info;
-    }
-}
-
 public enum TYPE_INFO
 {
     TYPE_ILLEGAL = -1,
@@ -34,15 +11,6 @@ public enum TYPE_INFO
     TYPE_STRING,
     TYPE_ARRAY,
     TYPE_MAP
-}
-
-public class SYMBOL_INFO
-{
-    public String SymbolName;
-    public TYPE_INFO Type;
-    public String str_val;
-    public double dbl_val;
-    public bool bol_val;
 }
 
 public enum OPERATOR
@@ -77,6 +45,38 @@ public struct ValueTable
     {
         this.tok = tok;
         this.Value = Value;
+    }
+}
+
+public class SYMBOL_INFO
+{
+    public String SymbolName;
+    public TYPE_INFO Type;
+    public String str_val;
+    public double dbl_val;
+    public bool bol_val;
+}
+
+public class RUNTIME_CONTEXT
+{
+    private Dictionary<string, SYMBOL_INFO> _symbols = new Dictionary<string, SYMBOL_INFO>();
+
+    public void Declare(string name, TYPE_INFO type)
+    {
+        if (_symbols.ContainsKey(name))
+        {
+            throw new Exception("Variable already declared: " + name);
+        }
+        _symbols[name] = new SYMBOL_INFO { SymbolName = name, Type = type };
+    }
+
+    public SYMBOL_INFO Lookup(string name)
+    {
+        if (!_symbols.TryGetValue(name, out SYMBOL_INFO info))
+        {
+            throw new Exception("Undeclared variable: " + name);
+        }
+        return info;
     }
 }
 
@@ -234,6 +234,18 @@ public abstract class Exp
     public abstract SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont);
 }
 
+public class NumericConstant : Exp
+{
+    private double _value;
+    public NumericConstant(double value) { _value = value; }
+    public override double Evaluate(RUNTIME_CONTEXT cont) { return _value; }
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write(_value);
+        return null;
+    }
+}
+
 public class Variable : Exp
 {
     private string _name;
@@ -245,18 +257,6 @@ public class Variable : Exp
     public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
     {
         Console.Write(_name);
-        return null;
-    }
-}
-
-public class NumericConstant : Exp
-{
-    private double _value;
-    public NumericConstant(double value) { _value = value; }
-    public override double Evaluate(RUNTIME_CONTEXT cont) { return _value; }
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write(_value);
         return null;
     }
 }
@@ -335,6 +335,87 @@ public class UnaryExp : Exp
     {
         Console.Write((_op == OPERATOR.PLUS) ? "+" : "-");
         _ex1.GenerateJS(cont);
+        return null;
+    }
+}
+
+public abstract class Stmt
+{
+    public abstract bool Execute(RUNTIME_CONTEXT con);
+    public abstract SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont);
+}
+
+public class PrintStatement : Stmt
+{
+    private Exp _ex;
+    public PrintStatement(Exp ex) { _ex = ex; }
+    public override bool Execute(RUNTIME_CONTEXT con)
+    {
+        double a = _ex.Evaluate(con);
+        Console.Write(a.ToString());
+        return true;
+    }
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write("printf(");
+        _ex.GenerateJS(cont);
+        Console.Write(");\r\n");
+        return null;
+    }
+}
+
+public class PrintLineStatement : Stmt
+{
+    private Exp _ex;
+    public PrintLineStatement(Exp ex) { _ex = ex; }
+    public override bool Execute(RUNTIME_CONTEXT con)
+    {
+        double a = _ex.Evaluate(con);
+        Console.WriteLine(a.ToString());
+        return true;
+    }
+
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write("printf(");
+        _ex.GenerateJS(cont);
+        Console.Write(");" + "\r\n");
+        return null;
+    }
+}
+
+public class VariableDeclStatement : Stmt
+{
+    private string _name;
+    public VariableDeclStatement(string name) { _name = name; }
+    public override bool Execute(RUNTIME_CONTEXT con)
+    {
+        con.Declare(_name, TYPE_INFO.TYPE_NUMERIC);
+        return true;
+    }
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write("var " + _name + ";\r\n");
+        return null;
+    }
+}
+
+public class AssignmentStatement : Stmt
+{
+    private string _name;
+    private Exp _ex;
+    public AssignmentStatement(string name, Exp ex) { _name = name; _ex = ex; }
+    public override bool Execute(RUNTIME_CONTEXT con)
+    {
+        double val = _ex.Evaluate(con);
+        con.Lookup(_name).dbl_val = val;
+        return true;
+    }
+    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
+    {
+        Console.Write(_name + "=");
+        _ex.GenerateJS(cont);
+        Console.Write(";\r\n");
         return null;
     }
 }
@@ -549,89 +630,6 @@ public class ExpressionBuilder : AbstractBuilder
         { return null; }
     }
 }
-
-public abstract class Stmt
-{
-    public abstract bool Execute(RUNTIME_CONTEXT con);
-    public abstract SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont);
-}
-
-public class PrintStatement : Stmt
-{
-    private Exp _ex;
-    public PrintStatement(Exp ex) { _ex = ex; }
-    public override bool Execute(RUNTIME_CONTEXT con)
-    {
-        double a = _ex.Evaluate(con);
-        Console.Write(a.ToString());
-        return true;
-    }
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write("printf(");
-        _ex.GenerateJS(cont);
-        Console.Write(");\r\n");
-        return null;
-    }
-}
-
-public class PrintLineStatement : Stmt
-{
-    private Exp _ex;
-    public PrintLineStatement(Exp ex) { _ex = ex; }
-    public override bool Execute(RUNTIME_CONTEXT con)
-    {
-        double a = _ex.Evaluate(con);
-        Console.WriteLine(a.ToString());
-        return true;
-    }
-
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write("printf(");
-        _ex.GenerateJS(cont);
-        Console.Write(");" + "\r\n");
-        return null;
-    }
-}
-
-public class VariableDeclStatement : Stmt
-{
-    private string _name;
-    public VariableDeclStatement(string name) { _name = name; }
-    public override bool Execute(RUNTIME_CONTEXT con)
-    {
-        con.Declare(_name, TYPE_INFO.TYPE_NUMERIC);
-        return true;
-    }
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write("var " + _name + ";\r\n");
-        return null;
-    }
-}
-
-public class AssignmentStatement : Stmt
-{
-    private string _name;
-    private Exp _ex;
-    public AssignmentStatement(string name, Exp ex) { _name = name; _ex = ex; }
-    public override bool Execute(RUNTIME_CONTEXT con)
-    {
-        double val = _ex.Evaluate(con);
-        con.Lookup(_name).dbl_val = val;
-        return true;
-    }
-    public override SYMBOL_INFO GenerateJS(RUNTIME_CONTEXT cont)
-    {
-        Console.Write(_name + "=");
-        _ex.GenerateJS(cont);
-        Console.Write(";\r\n");
-        return null;
-    }
-}
-
-
 
 class Program
 {

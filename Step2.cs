@@ -1,5 +1,3 @@
-public class RUNTIME_CONTEXT { }
-
 public enum OPERATOR
 {
     ILLEGAL = -1, PLUS, MINUS, DIV, MUL
@@ -17,6 +15,8 @@ public enum TOKEN
     TOK_DOUBLE,
     TOK_NULL // End of string
 }
+
+public class RUNTIME_CONTEXT { }
 
 public class Lexer
 {

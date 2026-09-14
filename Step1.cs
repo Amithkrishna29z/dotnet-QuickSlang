@@ -1,9 +1,9 @@
-public class RUNTIME_CONTEXT{ }
-
 public enum OPERATOR
 {
     ILLEGAL = -1, PLUS, MINUS, DIV, MUL
 }
+
+public class RUNTIME_CONTEXT{ }
 
 public abstract class Exp
 {
@@ -18,7 +18,7 @@ public class NumericConstant : Exp
     {
         return _value;
     }
-} 
+}
 
 public class BinaryExp : Exp
 {
